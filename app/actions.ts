@@ -59,6 +59,12 @@ const MISMATCH = "비밀번호가 일치하지 않습니다.";
 const NOT_FOUND = "글을 찾을 수 없습니다. 이미 삭제되었을 수 있어요.";
 const SERVER_ERROR = "처리 중 문제가 생겼습니다. 잠시 후 다시 시도해 주세요.";
 
+// 이미 지워진 글이면 목록을 새로 그려 화면에 남은 카드를 없앤다.
+function notFound(): MutationResult {
+  revalidatePath("/");
+  return { ok: false, error: NOT_FOUND };
+}
+
 // 글이 있고 비밀번호가 맞으면 null, 아니면 거부 사유를 돌려준다.
 // Server Action은 공개 엔드포인트이므로 요청마다 서버에서 다시 확인한다.
 async function rejectUnlessAuthor(
@@ -67,7 +73,7 @@ async function rejectUnlessAuthor(
 ): Promise<MutationResult | null> {
   if (!/^\d+$/.test(id)) return { ok: false, error: NOT_FOUND };
   const hash = await getPasswordHash(id);
-  if (hash === null) return { ok: false, error: NOT_FOUND };
+  if (hash === null) return notFound();
   if (!(await verifyPassword(password, hash))) return { ok: false, error: MISMATCH };
   return null;
 }
@@ -82,7 +88,7 @@ export async function updateEntryAction(
   try {
     const rejected = await rejectUnlessAuthor(id, String(formData.get("password") ?? ""));
     if (rejected) return rejected;
-    if (!(await updateMessage(id, message.value))) return { ok: false, error: NOT_FOUND };
+    if (!(await updateMessage(id, message.value))) return notFound();
   } catch {
     return { ok: false, error: SERVER_ERROR };
   }
@@ -98,7 +104,7 @@ export async function deleteEntryAction(
   try {
     const rejected = await rejectUnlessAuthor(id, String(formData.get("password") ?? ""));
     if (rejected) return rejected;
-    if (!(await removeEntry(id))) return { ok: false, error: NOT_FOUND };
+    if (!(await removeEntry(id))) return notFound();
   } catch {
     return { ok: false, error: SERVER_ERROR };
   }

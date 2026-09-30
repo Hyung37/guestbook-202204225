@@ -4,8 +4,8 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-human
+**Status:** done
 
-- [ ] Neon 프로젝트 이름이 `guestbook-202204225`이다
-- [ ] 연결 문자열이 `.env.local`의 `DATABASE_URL`에 들어 있다
-- [ ] `.env.local`이 git에 추적되지 않는다
+- [x] Neon 프로젝트 이름이 `guestbook-202204225`이다
+- [x] 연결 문자열이 `.env.local`의 `DATABASE_URL`에 들어 있다
+- [x] `.env.local`이 git에 추적되지 않는다

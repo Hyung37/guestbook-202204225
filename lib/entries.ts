@@ -67,3 +67,10 @@ export async function updateMessage(id: string, message: string): Promise<boolea
   );
   return rows.length > 0;
 }
+
+// 삭제된 행이 있으면 true, 그 사이 이미 지워졌으면 false
+export async function removeEntry(id: string): Promise<boolean> {
+  const sql = getSql();
+  const rows = await sql.query(`DELETE FROM entries WHERE id = $1 RETURNING id`, [id]);
+  return rows.length > 0;
+}

@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useTransition, type FormEvent } from "react";
-import { updateEntryAction } from "@/app/actions";
+import {
+  deleteEntryAction,
+  updateEntryAction,
+  type MutationResult,
+} from "@/app/actions";
 import type { Entry } from "@/lib/entries";
 import { formatKst } from "@/lib/format";
 
@@ -11,24 +15,27 @@ const errorClass = "text-sm text-red-600 dark:text-red-400";
 const subtleButton =
   "rounded-lg border border-zinc-300 px-3 py-1.5 text-sm transition hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800";
 
-type Mode = "view" | "edit";
+type Mode = "view" | "edit" | "delete";
 
 export default function EntryCard({ entry }: { entry: Entry }) {
   const [mode, setMode] = useState<Mode>("view");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  function close() {
-    setMode("view");
+  function open(next: Mode) {
     setError(null);
+    setMode(next);
   }
 
-  function onEdit(e: FormEvent<HTMLFormElement>) {
+  function submit(
+    e: FormEvent<HTMLFormElement>,
+    action: (id: string, formData: FormData) => Promise<MutationResult>,
+  ) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
-      const result = await updateEntryAction(entry.id, formData);
-      if (result.ok) close();
+      const result = await action(entry.id, formData);
+      if (result.ok) open("view");
       else setError(result.error);
     });
   }
@@ -50,15 +57,18 @@ export default function EntryCard({ entry }: { entry: Entry }) {
         <>
           <p className="whitespace-pre-wrap break-words">{entry.message}</p>
           <div className="flex gap-2">
-            <button type="button" className={subtleButton} onClick={() => setMode("edit")}>
+            <button type="button" className={subtleButton} onClick={() => open("edit")}>
               수정
+            </button>
+            <button type="button" className={subtleButton} onClick={() => open("delete")}>
+              삭제
             </button>
           </div>
         </>
       )}
 
       {mode === "edit" && (
-        <form onSubmit={onEdit} className="space-y-3">
+        <form onSubmit={(e) => submit(e, updateEntryAction)} className="space-y-3">
           <div className="space-y-1">
             <label htmlFor={`message-${entry.id}`} className="text-sm font-medium">
               메시지 수정
@@ -71,19 +81,7 @@ export default function EntryCard({ entry }: { entry: Entry }) {
               className={fieldClass}
             />
           </div>
-          <div className="space-y-1">
-            <label htmlFor={`password-${entry.id}`} className="text-sm font-medium">
-              비밀번호
-            </label>
-            <input
-              id={`password-${entry.id}`}
-              name="password"
-              type="password"
-              className={fieldClass}
-              placeholder="글을 쓸 때 정한 비밀번호"
-              autoComplete="off"
-            />
-          </div>
+          <PasswordField id={`password-${entry.id}`} />
           {error && (
             <p role="alert" className={errorClass}>
               {error}
@@ -97,12 +95,67 @@ export default function EntryCard({ entry }: { entry: Entry }) {
             >
               {pending ? "저장 중..." : "저장"}
             </button>
-            <button type="button" className={subtleButton} onClick={close} disabled={pending}>
+            <button
+              type="button"
+              className={subtleButton}
+              onClick={() => open("view")}
+              disabled={pending}
+            >
+              취소
+            </button>
+          </div>
+        </form>
+      )}
+
+      {mode === "delete" && (
+        <form onSubmit={(e) => submit(e, deleteEntryAction)} className="space-y-3">
+          <p className="whitespace-pre-wrap break-words">{entry.message}</p>
+          <p className="text-sm font-medium text-red-600 dark:text-red-400">
+            정말 삭제할까요? 삭제한 글은 되돌릴 수 없습니다.
+          </p>
+          <PasswordField id={`password-${entry.id}`} />
+          {error && (
+            <p role="alert" className={errorClass}>
+              {error}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={pending}
+              className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-50"
+            >
+              {pending ? "삭제 중..." : "삭제"}
+            </button>
+            <button
+              type="button"
+              className={subtleButton}
+              onClick={() => open("view")}
+              disabled={pending}
+            >
               취소
             </button>
           </div>
         </form>
       )}
     </li>
+  );
+}
+
+function PasswordField({ id }: { id: string }) {
+  return (
+    <div className="space-y-1">
+      <label htmlFor={id} className="text-sm font-medium">
+        비밀번호
+      </label>
+      <input
+        id={id}
+        name="password"
+        type="password"
+        className={fieldClass}
+        placeholder="글을 쓸 때 정한 비밀번호"
+        autoComplete="off"
+      />
+    </div>
   );
 }

@@ -8,7 +8,12 @@ import {
   verifyPassword,
   type EntryErrors,
 } from "@/lib/entry";
-import { getPasswordHash, insertEntry, updateMessage } from "@/lib/entries";
+import {
+  getPasswordHash,
+  insertEntry,
+  removeEntry,
+  updateMessage,
+} from "@/lib/entries";
 
 export type CreateEntryState = {
   errors?: EntryErrors;
@@ -78,6 +83,22 @@ export async function updateEntryAction(
     const rejected = await rejectUnlessAuthor(id, String(formData.get("password") ?? ""));
     if (rejected) return rejected;
     if (!(await updateMessage(id, message.value))) return { ok: false, error: NOT_FOUND };
+  } catch {
+    return { ok: false, error: SERVER_ERROR };
+  }
+
+  revalidatePath("/");
+  return { ok: true };
+}
+
+export async function deleteEntryAction(
+  id: string,
+  formData: FormData,
+): Promise<MutationResult> {
+  try {
+    const rejected = await rejectUnlessAuthor(id, String(formData.get("password") ?? ""));
+    if (rejected) return rejected;
+    if (!(await removeEntry(id))) return { ok: false, error: NOT_FOUND };
   } catch {
     return { ok: false, error: SERVER_ERROR };
   }

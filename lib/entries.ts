@@ -48,3 +48,22 @@ export async function insertEntry(input: {
     [input.name, input.message, input.passwordHash],
   );
 }
+
+export async function getPasswordHash(id: string): Promise<string | null> {
+  const sql = getSql();
+  const rows = (await sql.query(
+    `SELECT password_hash FROM entries WHERE id = $1`,
+    [id],
+  )) as { password_hash: string }[];
+  return rows[0]?.password_hash ?? null;
+}
+
+// 수정된 행이 있으면 true, 그 사이 삭제되어 없으면 false
+export async function updateMessage(id: string, message: string): Promise<boolean> {
+  const sql = getSql();
+  const rows = await sql.query(
+    `UPDATE entries SET message = $2, updated_at = now() WHERE id = $1 RETURNING id`,
+    [id, message],
+  );
+  return rows.length > 0;
+}
